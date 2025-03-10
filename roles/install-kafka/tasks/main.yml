@@ -1,0 +1,116 @@
+---
+- name: Create kafka group
+  group:
+    name: kafka
+    state: present
+
+- name: Create kafka user
+  user:
+    name: kafka
+    state: present
+    group: kafka
+
+- name: Download Kafka binaries
+  get_url:
+    url: "{{ kafka_download_url }}"
+    dest: "/tmp"
+
+- name: Extract Kafka binaries
+  unarchive:
+    src: "/tmp/{{ kafka_file_name }}"
+    dest: "/opt"
+
+- name: Set permissions for kafka
+  file:
+    path: "/opt/{{ kafka_file_name | regex_replace('.tgz', '') }}"
+    owner: kafka
+    group: kafka
+    recurse: yes
+
+- name: link kafka
+  file:
+    src: "/opt/{{ kafka_file_name | regex_replace('.tgz', '') }}"
+    dest: "{{ kafka_install_dir }}"
+    state: link
+
+- name: create kafka data dir
+  file:
+    path: "{{ kafka_data_dir }}"
+    state: directory
+    owner: kafka
+    group: kafka
+    mode: '0755'
+
+- name: backup config files
+  copy:
+    src: "{{ kafka_install_dir }}/config"
+    dest: "{{ kafka_install_dir }}/template"
+
+- name: remove old files
+  file:
+    path: "{{ kafka_install_dir }}/config"
+    state: absent
+
+- name: create kafka conf dir
+  file:
+    path: "{{ kafka_install_dir }}/config"
+    state: directory
+    owner: kafka
+    group: kafka
+    mode: '0755'
+
+- name: copy conf files
+  template:
+    src: "{{ item }}"
+    dest: "{{ kafka_install_dir }}/config/{{ item | basename | regex_replace('\\.j2', '') }}"
+    owner: kafka
+    group: kafka
+    mode: '0644'
+  with_items:
+    - log4j.properties.j2
+    - server.properties.j2.j2
+    - tools-log4j.properties.j2
+    - kafka-server.j2
+
+- name: create log dir
+  file:
+    path: "{{ kafka_install_dir }}/logs"
+    state: directory
+    owner: kafka
+    group: kafka
+    mode: '0755'
+
+- name: link log dir
+  file:
+    src: "{{ kafka_install_dir }}/logs"
+    dest: "/var/log/kafka"
+    state: link
+
+- name: link conf dir
+  file:
+    src: "{{ kafka_install_dir }}/config"
+    dest: "/etc/kafka/config"
+    state: link
+
+- name: systemctl include kafka-server.service
+  template:
+    src: kafka-server.service.j2
+    dest: /etc/systemd/system/kafka-server.service
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: generate kafka cluster ID
+  command: "{{ kafka_install_dir }}/bin/kafka-storage.sh random-uuid"
+  register: cluster_id
+  run_once: true
+  changed_when: false
+
+- name: format storage directory for KRaft
+  command: "{{ kafka_install_dir }}/bin/kafka-storage.sh format -t {{ cluster_id.stdout }} -c {{ kafka_install_dir }}/config/server.properties.j2"
+
+- name: reload systemctl
+  shell: systemctl daemon-reload
+
+- name: set enable in systemctl
+  shell: systemctl enable kafka-server --now
