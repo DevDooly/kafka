@@ -1,0 +1,48 @@
+- name: create kafka-ui dir
+  file:
+    path: "{{ kafka_ui_home }}"
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: copy kafka-ui jar
+  copy:
+    src: "{{ kafka_ui_file_name }}"
+    dest: "{{ kafka_ui_home }}"
+
+- name: create kafka-ui log dir
+  file:
+    path: "{{ kafka_ui_log_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: link log dir
+  file:
+    src: "{{ kafka_ui_log_dir }}"
+    dest: "{{ kafka_ui_home }}/logs"
+    state: link
+
+- name: copy config file
+  template:
+    src: application.yml.j2
+    dest: "{{ kafka_ui_home }}/application.yml"
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: systemctl include kafka-ui.service
+  template:
+    src: kafka-ui.service.j2
+    dest: /etc/systemd/system/kafka-ui.service
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: reload systemctl
+  shell: systemctl daemon-reload
+
+- name: set enable in systemctl
+  shell: systemctl enable kafka-ui --now

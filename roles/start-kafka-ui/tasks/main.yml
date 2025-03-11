@@ -1,0 +1,5 @@
+---
+- name: start kafka-ui
+  systemd:
+    state: started
+    name: kafka-ui

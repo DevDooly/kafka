@@ -1,5 +1,5 @@
 ---
-- name: start mariadb
+- name: start kafka-server
   systemd:
     state: started
     name: kafka-server

@@ -1,5 +1,5 @@
 ---
-- name: stop mariadb
+- name: restart kafka-server
   systemd:
-    state: stopped
+    state: restarted
     name: kafka-server

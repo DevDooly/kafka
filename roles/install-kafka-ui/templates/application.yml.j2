@@ -1,0 +1,25 @@
+server:
+  port: {{ kafka_ui_port }}
+
+kafka:
+  clusters:
+    -
+      name: {{ cluster_name }}
+      bootstrapServers: {{ bootstrap_servers }}
+      schemaRegistry: {{ schema_registry_url }}
+      # schemaRegistryAuth:
+      #   username: username
+      #   password: password
+      # schemaNameTemplate: "%s-value"
+      metrics:
+        port: {{ jmx_port }}
+        type: JMX
+
+logging:
+  level:
+    root: INFO
+    com.provectus: INFO
+    # org.springframework.http.codec.json.Jackson2JsonEncoder: DEBUG
+    # org.springframework.http.codec.json.Jackson2JsonDecoder: DEBUG
+    reactor.netty.http.server.AccessLog: INFO
+    org.springframework.security: INFO
